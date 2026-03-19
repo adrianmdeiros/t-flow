@@ -2,9 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { db } from '@/db'
-import { boards, columns } from '@/db/schema'
+import { boards, cards, columns } from '@/db/schema'
 import { createBoardSchema, updateBoardSchema } from '@/db/validations'
 import { createClient } from '@/lib/supabase/server'
+import { removeStorageImages } from '@/actions/cards'
 import { eq, and } from 'drizzle-orm'
 
 type ActionResult<T> =
@@ -43,6 +44,14 @@ export async function createBoard(formData: FormData): Promise<ActionResult<type
 export async function deleteBoard(boardId: string): Promise<ActionResult<null>> {
   const user = await getUser()
   if (!user) return { success: false, error: 'Unauthorized' }
+
+  // Remove all card images from storage before deleting the board
+  const boardCards = await db
+    .select({ imageUrl: cards.imageUrl })
+    .from(cards)
+    .where(eq(cards.boardId, boardId))
+  const imagePaths = boardCards.map((c) => c.imageUrl).filter((url): url is string => !!url)
+  await removeStorageImages(imagePaths)
 
   const result = await db
     .delete(boards)

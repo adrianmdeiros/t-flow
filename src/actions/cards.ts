@@ -17,6 +17,13 @@ async function getUser() {
   return user
 }
 
+export async function removeStorageImages(paths: string[]) {
+  const valid = paths.filter(Boolean)
+  if (!valid.length) return
+  const supabase = await createClient()
+  await supabase.storage.from('card-images').remove(valid)
+}
+
 async function verifyBoardOwner(boardId: string, userId: string) {
   const [board] = await db
     .select()
@@ -76,6 +83,11 @@ export async function updateCard(
   if (opts.imageUrl !== undefined) updates.imageUrl = opts.imageUrl
   if (opts.imageShape !== undefined) updates.imageShape = opts.imageShape
 
+  // Remove old image from storage when replacing with a new one or clearing it
+  if (opts.imageUrl !== undefined && existing.imageUrl && opts.imageUrl !== existing.imageUrl) {
+    await removeStorageImages([existing.imageUrl])
+  }
+
   const [card] = await db
     .update(cards)
     .set(updates)
@@ -95,6 +107,10 @@ export async function deleteCard(cardId: string): Promise<ActionResult<null>> {
 
   const board = await verifyBoardOwner(existing.boardId, user.id)
   if (!board) return { success: false, error: 'Unauthorized' }
+
+  if (existing.imageUrl) {
+    await removeStorageImages([existing.imageUrl])
+  }
 
   await db.delete(cards).where(eq(cards.id, cardId))
 
