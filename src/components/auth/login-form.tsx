@@ -8,6 +8,13 @@ import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
+function getBaseUrl() {
+  if (typeof window !== 'undefined') return window.location.origin
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return 'http://localhost:3000'
+}
+
 export function LoginForm() {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
@@ -20,7 +27,7 @@ export function LoginForm() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${getBaseUrl()}/auth/callback`,
       },
     })
 
@@ -57,7 +64,7 @@ export function LoginForm() {
         />
       </div>
       <Button type="submit" className="w-full" disabled={status === 'loading'}>
-        {status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar magic link'}
+        {status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar'}
       </Button>
     </form>
   )
