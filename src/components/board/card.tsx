@@ -62,6 +62,7 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0 : 1,
+    touchAction: 'none' as const,
   }
 
   const imageUrl = card.imageUrl
@@ -78,7 +79,8 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
         style={style}
         {...attributes}
         {...listeners}
-        className={`group relative touch-manipulation ${animateIn ? 'animate-card-in' : ''} ${deleting ? 'animate-card-out' : ''}`}
+        data-draggable-card
+        className={`group relative ${animateIn ? 'animate-card-in' : ''} ${deleting ? 'animate-card-out' : ''}`}
       >
         <CardWrapper className="p-0 gap-0 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow duration-200">
           {imageUrl && (
