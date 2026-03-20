@@ -30,12 +30,11 @@ export async function createBoard(formData: FormData): Promise<ActionResult<type
     .values({ ownerId: user.id, title: parsed.data.title })
     .returning()
 
-  await db.transaction(async (tx) => {
-    const defaults = ['A fazer', 'Em andamento', 'Concluído']
-    for (let i = 0; i < defaults.length; i++) {
-      await tx.insert(columns).values({ boardId: board.id, title: defaults[i], position: i })
-    }
-  })
+  // Insert all default columns in a single query
+  const defaults = ['A fazer', 'Em andamento', 'Concluído']
+  await db.insert(columns).values(
+    defaults.map((title, i) => ({ boardId: board.id, title, position: i }))
+  )
 
   revalidatePath('/')
   return { success: true, data: board }
@@ -51,7 +50,6 @@ export async function deleteBoard(boardId: string): Promise<ActionResult<null>> 
     .from(cards)
     .where(eq(cards.boardId, boardId))
   const imagePaths = boardCards.map((c) => c.imageUrl).filter((url): url is string => !!url)
-  await removeStorageImages(imagePaths)
 
   const result = await db
     .delete(boards)
@@ -59,6 +57,11 @@ export async function deleteBoard(boardId: string): Promise<ActionResult<null>> 
     .returning()
 
   if (!result.length) return { success: false, error: 'Board not found' }
+
+  // Clean up images in background after the board is deleted
+  if (imagePaths.length) {
+    removeStorageImages(imagePaths).catch(() => {})
+  }
 
   revalidatePath('/')
   return { success: true, data: null }

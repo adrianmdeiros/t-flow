@@ -3,8 +3,13 @@ const MAX_HEIGHT = 800
 const QUALITY = 0.8
 
 export async function compressImage(file: File): Promise<File> {
-  // Skip non-image files or already small files (< 100KB)
-  if (!file.type.startsWith('image/') || file.size < 100 * 1024) {
+  // Skip non-image files
+  if (!file.type.startsWith('image/')) {
+    return file
+  }
+
+  // Already WebP and small enough — skip
+  if (file.type === 'image/webp' && file.size < 100 * 1024) {
     return file
   }
 

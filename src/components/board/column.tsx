@@ -130,7 +130,7 @@ export const Column = memo(function Column({ column, boardId, userId }: ColumnPr
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" collisionPadding={8}>
               <DropdownMenuItem onPointerDown={(e) => e.stopPropagation()} onSelect={() => setConfirmClear(true)}>
                 <Eraser className="h-4 w-4" />
                 Limpar coluna

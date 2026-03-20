@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState } from 'react'
+import { memo, useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -40,6 +40,14 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [animateIn, setAnimateIn] = useState(() => Date.now() - new Date(card.createdAt).getTime() < 2000)
+
+  useEffect(() => {
+    if (animateIn) {
+      const timer = setTimeout(() => setAnimateIn(false), 300)
+      return () => clearTimeout(timer)
+    }
+  }, [animateIn])
 
   const {
     attributes,
@@ -70,7 +78,7 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
         style={style}
         {...attributes}
         {...listeners}
-        className="group relative touch-manipulation"
+        className={`group relative touch-manipulation ${animateIn ? 'animate-card-in' : ''} ${deleting ? 'animate-card-out' : ''}`}
       >
         <CardWrapper className="p-0 gap-0 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow duration-200">
           {imageUrl && (
@@ -94,9 +102,9 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
           ) : null}
         </CardWrapper>
 
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-lg z-10">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        {(loading || deleting) && (
+          <div className={`absolute inset-0 flex items-center justify-center rounded-lg z-10 ${deleting ? 'bg-destructive/15' : 'bg-background/60'}`}>
+            <Loader2 className={`h-5 w-5 animate-spin ${deleting ? 'text-destructive' : 'text-muted-foreground'}`} />
           </div>
         )}
 
@@ -110,7 +118,7 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
                 <MoreHorizontal className="h-4 w-4 text-white" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" collisionPadding={8}>
               <DropdownMenuItem disabled={loading} onPointerDown={(e) => e.stopPropagation()} onSelect={() => setEditOpen(true)}>
                 <Pencil className="h-4 w-4" />
                 Editar
@@ -156,14 +164,13 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
               disabled={deleting}
               onClick={async (e) => {
                 e.preventDefault()
+                setConfirmDelete(false)
                 setDeleting(true)
                 await runServerAction(() => deleteCard(card.id))
                 toast.success('Card excluído')
-                setDeleting(false)
-                setConfirmDelete(false)
               }}
             >
-              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Excluir'}
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -17,20 +17,20 @@ async function getUser() {
   return user
 }
 
-async function verifyBoardOwner(boardId: string, userId: string) {
-  const [board] = await db
-    .select()
-    .from(boards)
-    .where(and(eq(boards.id, boardId), eq(boards.ownerId, userId)))
-  return board
+/** Authenticate + verify board ownership in parallel */
+async function authenticateAndVerify(boardId: string): Promise<{ error: string } | { user: NonNullable<Awaited<ReturnType<typeof getUser>>>; board: typeof boards.$inferSelect }> {
+  const [user, [board]] = await Promise.all([
+    getUser(),
+    db.select().from(boards).where(eq(boards.id, boardId)),
+  ])
+  if (!user) return { error: 'Unauthorized' }
+  if (!board || board.ownerId !== user.id) return { error: 'Board not found' }
+  return { user, board }
 }
 
 export async function createColumn(boardId: string, title: string): Promise<ActionResult<typeof columns.$inferSelect>> {
-  const user = await getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
-
-  const board = await verifyBoardOwner(boardId, user.id)
-  if (!board) return { success: false, error: 'Board not found' }
+  const auth = await authenticateAndVerify(boardId)
+  if ('error' in auth) return { success: false, error: auth.error }
 
   const parsed = updateColumnSchema.safeParse({ title })
   if (!parsed.success) return { success: false, error: parsed.error.issues[0].message }
@@ -52,11 +52,8 @@ export async function createColumn(boardId: string, title: string): Promise<Acti
 }
 
 export async function deleteColumn(columnId: string, boardId: string): Promise<ActionResult<null>> {
-  const user = await getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
-
-  const board = await verifyBoardOwner(boardId, user.id)
-  if (!board) return { success: false, error: 'Board not found' }
+  const auth = await authenticateAndVerify(boardId)
+  if ('error' in auth) return { success: false, error: auth.error }
 
   await db.delete(columns).where(eq(columns.id, columnId))
 
@@ -65,11 +62,8 @@ export async function deleteColumn(columnId: string, boardId: string): Promise<A
 }
 
 export async function updateColumnTitle(columnId: string, title: string, boardId: string): Promise<ActionResult<typeof columns.$inferSelect>> {
-  const user = await getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
-
-  const board = await verifyBoardOwner(boardId, user.id)
-  if (!board) return { success: false, error: 'Board not found' }
+  const auth = await authenticateAndVerify(boardId)
+  if ('error' in auth) return { success: false, error: auth.error }
 
   const parsed = updateColumnSchema.safeParse({ title })
   if (!parsed.success) return { success: false, error: parsed.error.issues[0].message }
@@ -87,31 +81,27 @@ export async function updateColumnTitle(columnId: string, title: string, boardId
 }
 
 export async function reorderColumns(boardId: string, orderedIds: string[]): Promise<ActionResult<null>> {
-  const user = await getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!orderedIds.length) return { success: true, data: null }
 
-  const board = await verifyBoardOwner(boardId, user.id)
-  if (!board) return { success: false, error: 'Board not found' }
+  const auth = await authenticateAndVerify(boardId)
+  if ('error' in auth) return { success: false, error: auth.error }
 
-  await db.transaction(async (tx) => {
-    for (let i = 0; i < orderedIds.length; i++) {
-      await tx
-        .update(columns)
-        .set({ position: i })
-        .where(and(eq(columns.id, orderedIds[i]), eq(columns.boardId, boardId)))
-    }
-  })
+  // Single SQL statement using CASE instead of N individual UPDATEs
+  const cases = orderedIds
+    .map((id, i) => sql`WHEN ${id} THEN ${sql.raw(String(i))}`)
+
+  await db.execute(sql`
+    UPDATE columns SET position = CASE id ${sql.join(cases, sql` `)} END
+    WHERE id IN (${sql.join(orderedIds.map(id => sql`${id}`), sql`, `)})
+  `)
 
   revalidatePath(`/board/${boardId}`)
   return { success: true, data: null }
 }
 
 export async function clearColumn(columnId: string, boardId: string): Promise<ActionResult<null>> {
-  const user = await getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
-
-  const board = await verifyBoardOwner(boardId, user.id)
-  if (!board) return { success: false, error: 'Board not found' }
+  const auth = await authenticateAndVerify(boardId)
+  if ('error' in auth) return { success: false, error: auth.error }
 
   await db
     .update(cards)

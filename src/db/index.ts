@@ -8,13 +8,13 @@ const globalForDb = globalThis as unknown as { db?: DbInstance }
 function getDb(): DbInstance {
   if (globalForDb.db) return globalForDb.db
   const client = postgres(process.env.DATABASE_URL!, {
-    max: 1,
-    prepare: false,
+    max: 10,
+    idle_timeout: 20,
     // Override password to handle special chars (e.g. '?') that break URL parsing
     ...(process.env.DATABASE_PASSWORD && { password: process.env.DATABASE_PASSWORD }),
   })
   const db = drizzle(client, { schema })
-  if (process.env.NODE_ENV !== 'production') globalForDb.db = db
+  globalForDb.db = db
   return db
 }
 

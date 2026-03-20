@@ -56,7 +56,7 @@ export function BoardCard({ board }: BoardCardProps) {
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" collisionPadding={8}>
               <DropdownMenuItem
                 variant="destructive"
                 onSelect={() => setConfirmDelete(true)}

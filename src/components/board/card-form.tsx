@@ -96,7 +96,7 @@ function CardFormInner({ boardId, columnId, existingCard, open, onClose, userId 
     if (imageFile) {
       const compressed = await compressImage(imageFile)
       const supabase = createClient()
-      const path = `${userId}/${existingCard?.id ?? crypto.randomUUID()}_${Date.now()}`
+      const path = `${userId}/${existingCard?.id ?? crypto.randomUUID()}_${Date.now()}.webp`
       const { error: uploadError } = await supabase.storage
         .from('card-images')
         .upload(path, compressed, { upsert: true })
