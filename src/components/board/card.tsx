@@ -62,7 +62,7 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0 : 1,
-    touchAction: 'none' as const,
+    touchAction: 'manipulation' as const,
   }
 
   const imageUrl = card.imageUrl
