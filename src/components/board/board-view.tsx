@@ -14,6 +14,18 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
+
+// PointerSensor that ignores touch events so TouchSensor handles them with delay-based activation
+class MouseOnlySensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: 'onPointerDown' as const,
+      handler: ({ nativeEvent }: { nativeEvent: PointerEvent }) => {
+        return nativeEvent.pointerType !== 'touch'
+      },
+    },
+  ]
+}
 import {
   SortableContext,
   horizontalListSortingStrategy,
@@ -149,8 +161,8 @@ export function BoardView({ boardId, columns: initialColumns, stagingCards: init
   }, [])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+    useSensor(MouseOnlySensor, { activationConstraint: { distance: 10 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } })
   )
 
   // No handleDragOver — all mutation happens in handleDragEnd

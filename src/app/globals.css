@@ -175,3 +175,11 @@ body {
 .animate-card-out {
   animation: card-out 0.2s ease-in both;
 }
+
+/* Visual feedback for touch hold before drag activates */
+@media (pointer: coarse) {
+  [data-draggable-card]:active {
+    transform: scale(0.97);
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+}
