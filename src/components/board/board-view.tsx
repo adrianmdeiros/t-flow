@@ -6,6 +6,7 @@ import {
   pointerWithin,
   closestCenter,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragOverlay,
@@ -148,7 +149,8 @@ export function BoardView({ boardId, columns: initialColumns, stagingCards: init
   }, [])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 10 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   )
 
   // No handleDragOver — all mutation happens in handleDragEnd
@@ -275,8 +277,8 @@ export function BoardView({ boardId, columns: initialColumns, stagingCards: init
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="flex flex-col p-4 h-[calc(100vh-120px)]">
-          <div className="flex gap-4 overflow-x-auto pb-2 flex-1 min-h-0">
+        <div className="flex flex-col p-2 sm:p-4 h-[calc(100dvh-120px)]">
+          <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-2 flex-1 min-h-0">
             <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
               {boardState.columns.map((col) => (
                 <Column key={col.id} column={col} boardId={boardId} userId={userId} />

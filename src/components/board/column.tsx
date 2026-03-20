@@ -3,14 +3,48 @@
 import { memo, useState } from 'react'
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { MoreHorizontal, Eraser, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Eraser, Trash2, Loader2 } from 'lucide-react'
 import { deleteColumn, updateColumnTitle, clearColumn } from '@/actions/columns'
 import { Card } from './card'
 import { useBoardContext } from './board-context'
 import { Button } from '@/components/ui/button'
-import { Dialog } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownItem } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { toast } from 'sonner'
 import type { ColumnWithCards } from '@/types'
+
+const SIZE_ORDER = { small: 0, medium: 1, large: 2 } as const
+const COLUMN_WIDTH: Record<string, string> = {
+  small: 'w-48',
+  medium: 'w-56',
+  large: 'w-64',
+}
+
+function getColumnWidth(cards: ColumnWithCards['cards']): string {
+  if (cards.length === 0) return 'w-56'
+  let max: keyof typeof SIZE_ORDER = 'small'
+  for (const card of cards) {
+    const size = (card.imageSize ?? 'large') as keyof typeof SIZE_ORDER
+    if (SIZE_ORDER[size] > SIZE_ORDER[max]) max = size
+  }
+  return COLUMN_WIDTH[max]
+}
 
 interface ColumnProps {
   column: ColumnWithCards
@@ -24,6 +58,8 @@ export const Column = memo(function Column({ column, boardId, userId }: ColumnPr
   const [title, setTitle] = useState(column.title)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [deletingCol, setDeletingCol] = useState(false)
+  const [clearingCol, setClearingCol] = useState(false)
 
   const {
     attributes,
@@ -35,12 +71,13 @@ export const Column = memo(function Column({ column, boardId, userId }: ColumnPr
   } = useSortable({ id: `column:${column.id}` })
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
   }
 
   const cardIds = column.cards.map((c) => `card:${c.id}`)
+  const widthClass = getColumnWidth(column.cards)
 
   const saveTitle = async () => {
     setEditing(false)
@@ -58,12 +95,12 @@ export const Column = memo(function Column({ column, boardId, userId }: ColumnPr
         style={style}
         {...attributes}
         {...listeners}
-        className="w-64 shrink-0 rounded-lg bg-[--accent] border border-[--border] flex flex-col h-full cursor-grab active:cursor-grabbing"
+        className={`${widthClass} shrink-0 bg-accent border border-border flex flex-col h-full cursor-grab active:cursor-grabbing touch-manipulation`}
       >
-        <div className="flex items-center gap-1 p-3 border-b border-[--border]">
+        <div className="flex items-center gap-1 p-3">
           {editing ? (
             <input
-              className="flex-1 bg-transparent text-sm font-semibold border-b border-[--primary] outline-none"
+              className="flex-1 bg-transparent text-sm font-semibold border-b border-primary outline-none"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={saveTitle}
@@ -84,57 +121,96 @@ export const Column = memo(function Column({ column, boardId, userId }: ColumnPr
             </h3>
           )}
 
-          <DropdownMenu
-            trigger={
-              <span className="h-6 w-6 flex items-center justify-center rounded bg-[--accent] hover:bg-[--background] shadow-sm">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="h-6 w-6 flex items-center justify-center bg-accent hover:bg-background shadow-sm cursor-pointer"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
                 <MoreHorizontal className="h-4 w-4" />
-              </span>
-            }
-          >
-            <DropdownItem
-              icon={<Eraser className="h-4 w-4" />}
-              onClick={() => setConfirmClear(true)}
-            >
-              Limpar coluna
-            </DropdownItem>
-            <DropdownItem
-              icon={<Trash2 className="h-4 w-4" />}
-              variant="destructive"
-              onClick={() => setConfirmDelete(true)}
-            >
-              Excluir coluna
-            </DropdownItem>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onPointerDown={(e) => e.stopPropagation()} onSelect={() => setConfirmClear(true)}>
+                <Eraser className="h-4 w-4" />
+                Limpar coluna
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onPointerDown={(e) => e.stopPropagation()} onSelect={() => setConfirmDelete(true)}>
+                <Trash2 className="h-4 w-4" />
+                Excluir coluna
+              </DropdownMenuItem>
+            </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        <div className="p-2 space-y-2 flex-1 min-h-16 overflow-y-auto">
-          <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-            {column.cards.map((card) => (
-              <Card key={card.id} card={card} userId={userId} boardId={boardId} />
-            ))}
-          </SortableContext>
-        </div>
+        <Separator />
+
+        <ScrollArea className="flex-1 min-h-16">
+          <div className="p-2 space-y-2">
+            <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
+              {column.cards.map((card) => (
+                <Card key={card.id} card={card} userId={userId} boardId={boardId} />
+              ))}
+            </SortableContext>
+          </div>
+        </ScrollArea>
       </div>
 
-      <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Excluir coluna">
-        <p className="text-sm text-[--muted] mb-4">
-          Tem certeza que deseja excluir a coluna &ldquo;{column.title}&rdquo;?
-        </p>
-        <div className="flex gap-2 justify-end">
-          <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
-          <Button variant="destructive" onClick={async () => { await runServerAction(() => deleteColumn(column.id, boardId)); setConfirmDelete(false) }}>Excluir</Button>
-        </div>
-      </Dialog>
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir coluna</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a coluna &ldquo;{column.title}&rdquo;?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingCol}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deletingCol}
+              onClick={async (e) => {
+                e.preventDefault()
+                setDeletingCol(true)
+                await runServerAction(() => deleteColumn(column.id, boardId))
+                toast.success('Coluna excluída')
+                setDeletingCol(false)
+                setConfirmDelete(false)
+              }}
+            >
+              {deletingCol ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      <Dialog open={confirmClear} onClose={() => setConfirmClear(false)} title="Limpar coluna">
-        <p className="text-sm text-[--muted] mb-4">
-          Todos os cards serão movidos para a área de não atribuídos.
-        </p>
-        <div className="flex gap-2 justify-end">
-          <Button variant="ghost" onClick={() => setConfirmClear(false)}>Cancelar</Button>
-          <Button variant="warning" onClick={async () => { await runServerAction(() => clearColumn(column.id, boardId)); setConfirmClear(false) }}>Limpar</Button>
-        </div>
-      </Dialog>
+      <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar coluna</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os cards serão movidos para a área de não atribuídos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearingCol}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="warning"
+              disabled={clearingCol}
+              onClick={async (e) => {
+                e.preventDefault()
+                setClearingCol(true)
+                await runServerAction(() => clearColumn(column.id, boardId))
+                toast.success('Coluna limpa')
+                setClearingCol(false)
+                setConfirmClear(false)
+              }}
+            >
+              {clearingCol ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Limpar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 })

@@ -28,12 +28,14 @@ export const createCardSchema = z.object({
   title: z.string().max(200).nullable().optional(),
   imageUrl: z.string().nullable().optional(),
   imageShape: z.enum(['square', 'round']).optional(),
+  imageSize: z.enum(['small', 'medium', 'large']).optional(),
 })
 
 export const updateCardSchema = z.object({
   title: z.string().max(200).nullable().optional(),
   imageUrl: z.string().nullable().optional(),
   imageShape: z.enum(['square', 'round']).optional(),
+  imageSize: z.enum(['small', 'medium', 'large']).optional(),
 })
 
 export const moveCardSchema = z.object({

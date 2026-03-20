@@ -4,13 +4,28 @@ import { memo, useState } from 'react'
 import Image from 'next/image'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
-import { deleteCard } from '@/actions/cards'
+import { MoreHorizontal, Pencil, Trash2, Copy, Loader2 } from 'lucide-react'
+import { deleteCard, duplicateCard } from '@/actions/cards'
 import { useBoardContext } from './board-context'
-import { Button } from '@/components/ui/button'
-import { Dialog } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownItem } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
+import { Card as CardWrapper } from '@/components/ui/card'
 import { CardForm } from './card-form'
+import { toast } from 'sonner'
 import type { Card as CardType } from '@/types'
 
 interface CardProps {
@@ -23,6 +38,8 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
   const { runServerAction } = useBoardContext()
   const [editOpen, setEditOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const {
     attributes,
@@ -43,6 +60,9 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
     ? `https://utynojjnhvtntijjjjzh.supabase.co/storage/v1/object/public/card-images/${card.imageUrl}`
     : null
 
+  const imageHeightClass =
+    card.imageSize === 'small' ? 'h-24' : card.imageSize === 'medium' ? 'h-28' : 'h-32'
+
   return (
     <>
       <div
@@ -50,47 +70,65 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
         style={style}
         {...attributes}
         {...listeners}
-        className="group relative rounded-md border border-[--border] bg-[--card] shadow-sm cursor-grab active:cursor-grabbing"
+        className="group relative touch-manipulation"
       >
-        {imageUrl && (
-          <div className="relative w-full h-32">
-            <Image
-              src={imageUrl}
-              alt={card.title ?? 'Card image'}
-              fill
-              className="object-cover rounded-t-md"
-            />
+        <CardWrapper className="p-0 gap-0 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow duration-200">
+          {imageUrl && (
+            <div className={`relative w-full ${imageHeightClass}`}>
+              <Image
+                src={imageUrl}
+                alt={card.title ?? 'Card image'}
+                fill
+                className="object-cover"
+              />
+            </div>
+          )}
+          {card.title ? (
+            <div className="p-3">
+              <p className="text-sm text-card-foreground">{card.title}</p>
+            </div>
+          ) : !imageUrl ? (
+            <div className="p-3">
+              <p className="text-sm text-muted-foreground italic">Card vazio</p>
+            </div>
+          ) : null}
+        </CardWrapper>
+
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-lg z-10">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         )}
-        <div className="p-3">
-          {card.title && (
-            <p className="text-sm text-[--card-foreground]">{card.title}</p>
-          )}
-          {!card.title && !imageUrl && (
-            <p className="text-sm text-[--muted] italic">Card vazio</p>
-          )}
-        </div>
-        <div className="absolute top-1 right-1 hidden group-hover:block">
-          <DropdownMenu
-            trigger={
-              <span className="h-6 w-6 flex items-center justify-center rounded bg-black/60 shadow-sm">
+
+        <div className="absolute top-1 right-1 sm:hidden sm:group-hover:block has-data-[state=open]:block">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="h-6 w-6 flex items-center justify-center bg-black/60 shadow-sm cursor-pointer"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
                 <MoreHorizontal className="h-4 w-4 text-white" />
-              </span>
-            }
-          >
-            <DropdownItem
-              icon={<Pencil className="h-4 w-4" />}
-              onClick={() => setEditOpen(true)}
-            >
-              Editar
-            </DropdownItem>
-            <DropdownItem
-              icon={<Trash2 className="h-4 w-4" />}
-              variant="destructive"
-              onClick={() => setConfirmDelete(true)}
-            >
-              Excluir
-            </DropdownItem>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem disabled={loading} onPointerDown={(e) => e.stopPropagation()} onSelect={() => setEditOpen(true)}>
+                <Pencil className="h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={loading} onPointerDown={(e) => e.stopPropagation()} onSelect={async () => {
+                setLoading(true)
+                await runServerAction(() => duplicateCard(card.id))
+                toast.success('Card duplicado')
+                setLoading(false)
+              }}>
+                <Copy className="h-4 w-4" />
+                Duplicar
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={loading} variant="destructive" onPointerDown={(e) => e.stopPropagation()} onSelect={() => setConfirmDelete(true)}>
+                <Trash2 className="h-4 w-4" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
@@ -103,15 +141,33 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
         userId={userId}
       />
 
-      <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Excluir card">
-        <p className="text-sm text-[--muted] mb-4">
-          Tem certeza que deseja excluir este card?
-        </p>
-        <div className="flex gap-2 justify-end">
-          <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
-          <Button variant="destructive" onClick={async () => { await runServerAction(() => deleteCard(card.id)); setConfirmDelete(false) }}>Excluir</Button>
-        </div>
-      </Dialog>
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir card</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este card?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleting}
+              onClick={async (e) => {
+                e.preventDefault()
+                setDeleting(true)
+                await runServerAction(() => deleteCard(card.id))
+                toast.success('Card excluído')
+                setDeleting(false)
+                setConfirmDelete(false)
+              }}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 })

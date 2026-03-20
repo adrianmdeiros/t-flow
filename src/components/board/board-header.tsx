@@ -29,7 +29,7 @@ export function BoardHeader({ board }: BoardHeaderProps) {
   return editing ? (
     <input
       ref={inputRef}
-      className="text-2xl font-bold bg-transparent border-b border-[--primary] outline-none text-[--foreground]"
+      className="text-2xl font-bold bg-transparent border-b border-primary outline-none text-foreground"
       value={title}
       onChange={(e) => setTitle(e.target.value)}
       onBlur={save}

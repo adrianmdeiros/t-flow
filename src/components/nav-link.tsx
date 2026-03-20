@@ -18,14 +18,14 @@ export function NavLink({ href, icon, children, exact = false }: NavLinkProps) {
   return (
     <Link
       href={href}
-      className={`flex items-center gap-1.5 text-sm px-2 py-1 rounded-md transition-colors ${
+      className={`flex items-center gap-1.5 text-sm px-2 py-1 transition-colors ${
         isActive
-          ? 'text-[--foreground] bg-[--accent] font-medium'
-          : 'text-[--muted] hover:text-[--foreground] hover:bg-[--accent]'
+          ? 'text-foreground bg-accent font-medium'
+          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
       }`}
     >
       {icon}
-      {children}
+      <span className="hidden sm:inline">{children}</span>
     </Link>
   )
 }

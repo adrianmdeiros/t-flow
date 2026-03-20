@@ -1,8 +1,21 @@
 import Image from 'next/image'
-import type { Card } from '@/types'
+import { Card } from '@/components/ui/card'
+import type { Card as CardType } from '@/types'
+
+const OVERLAY_WIDTH: Record<string, string> = {
+  small: 'w-48',
+  medium: 'w-56',
+  large: 'w-56',
+}
+
+const IMAGE_HEIGHT: Record<string, string> = {
+  small: 'h-24',
+  medium: 'h-28',
+  large: 'h-32',
+}
 
 interface CardOverlayProps {
-  card: Card
+  card: CardType
 }
 
 export function CardOverlay({ card }: CardOverlayProps) {
@@ -10,26 +23,29 @@ export function CardOverlay({ card }: CardOverlayProps) {
     ? `https://utynojjnhvtntijjjjzh.supabase.co/storage/v1/object/public/card-images/${card.imageUrl}`
     : null
 
+  const widthClass = OVERLAY_WIDTH[card.imageSize] ?? 'w-56'
+  const heightClass = IMAGE_HEIGHT[card.imageSize] ?? 'h-32'
+
   return (
-    <div className="w-56 rounded-md border border-[--border] bg-[--card] shadow-lg rotate-2 opacity-90 pointer-events-none">
+    <Card className={`${widthClass} rotate-2 opacity-90 pointer-events-none shadow-lg`}>
       {imageUrl && (
-        <div className="relative w-full h-32">
+        <div className={`relative w-full ${heightClass}`}>
           <Image
             src={imageUrl}
             alt={card.title ?? 'Card image'}
             fill
-            className="object-cover rounded-t-md"
+            className="object-cover"
           />
         </div>
       )}
       <div className="p-3">
         {card.title && (
-          <p className="text-sm text-[--card-foreground]">{card.title}</p>
+          <p className="text-sm text-card-foreground">{card.title}</p>
         )}
         {!card.title && !imageUrl && (
-          <p className="text-sm text-[--muted] italic">Card vazio</p>
+          <p className="text-sm text-muted-foreground italic">Card vazio</p>
         )}
       </div>
-    </div>
+    </Card>
   )
 }

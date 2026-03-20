@@ -43,6 +43,7 @@ export const cards = pgTable('cards', {
   title: text('title'),
   imageUrl: text('image_url'),
   imageShape: text('image_shape').default('square').notNull(),
+  imageSize: text('image_size').default('large').notNull(),
   position: integer('position').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })

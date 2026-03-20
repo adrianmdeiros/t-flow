@@ -1,35 +1,19 @@
-import { cn } from '@/lib/utils'
-import { type InputHTMLAttributes, forwardRef } from 'react'
+import * as React from "react"
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string
-  error?: string
+import { cn } from "@/lib/utils"
+
+function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+  return (
+    <input
+      type={type}
+      data-slot="input"
+      className={cn(
+        "h-8 w-full min-w-0 rounded-none border border-input bg-transparent px-2.5 py-1 text-xs transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-xs file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 md:text-xs dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+        className
+      )}
+      {...props}
+    />
+  )
 }
-
-const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, id, ...props }, ref) => {
-    return (
-      <div className="flex flex-col gap-1">
-        {label && (
-          <label htmlFor={id} className="text-sm font-medium text-[--foreground]">
-            {label}
-          </label>
-        )}
-        <input
-          ref={ref}
-          id={id}
-          className={cn(
-            'flex h-9 w-full rounded-md border border-[--border] bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-[--muted] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[--ring] disabled:cursor-not-allowed disabled:opacity-50',
-            error && 'border-[--destructive]',
-            className
-          )}
-          {...props}
-        />
-        {error && <p className="text-xs text-[--destructive]">{error}</p>}
-      </div>
-    )
-  }
-)
-Input.displayName = 'Input'
 
 export { Input }

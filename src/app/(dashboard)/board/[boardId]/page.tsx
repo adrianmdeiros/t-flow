@@ -41,8 +41,8 @@ export default async function BoardPage({ params }: { params: Promise<{ boardId:
   }))
 
   return (
-    <main className="flex flex-col min-h-[calc(100vh-56px)]">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[--border]">
+    <main className="flex flex-col min-h-[calc(100dvh-56px)]">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-border">
         <BoardHeader board={board} />
       </div>
 

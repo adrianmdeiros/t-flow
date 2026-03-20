@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Lato, JetBrains_Mono } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 import { cn } from "@/lib/utils";
 
@@ -26,7 +28,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={cn("font-mono", jetbrainsMono.variable)}>
       <body className={`${lato.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
+          <TooltipProvider>
+            {children}
+          </TooltipProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

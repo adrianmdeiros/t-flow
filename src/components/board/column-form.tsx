@@ -5,6 +5,7 @@ import { createColumn } from '@/actions/columns'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface ColumnFormProps {
   boardId: string
@@ -20,6 +21,7 @@ export function ColumnForm({ boardId }: ColumnFormProps) {
     if (!title.trim()) return
     setLoading(true)
     await createColumn(boardId, title.trim())
+    toast.success('Coluna criada')
     setTitle('')
     setOpen(false)
     setLoading(false)
@@ -29,15 +31,15 @@ export function ColumnForm({ boardId }: ColumnFormProps) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-64 shrink-0 h-12 rounded-lg border-2 border-dashed border-[--border] hover:border-[--primary] hover:bg-[--accent] transition-colors flex items-center justify-center cursor-pointer self-start"
+        className="w-56 sm:w-64 shrink-0 h-12 border-2 border-dashed border-border hover:border-primary hover:bg-accent transition-colors flex items-center justify-center cursor-pointer self-start"
       >
-        <Plus className="h-5 w-5 text-[--muted]" />
+        <Plus className="h-5 w-5 text-muted-foreground" />
       </button>
     )
   }
 
   return (
-    <div className="w-64 shrink-0">
+    <div className="w-56 sm:w-64 shrink-0 animate-in fade-in slide-in-from-top-2 duration-200">
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
         <Input
           placeholder="Título da coluna"
