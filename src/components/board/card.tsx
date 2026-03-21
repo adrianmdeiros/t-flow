@@ -76,9 +76,9 @@ export const Card = memo(function Card({ card, userId, boardId }: CardProps) {
     <>
       <div
         ref={setNodeRef}
-        style={style}
         {...attributes}
         {...listeners}
+        style={style}
         data-draggable-card
         className={`group relative ${animateIn ? 'animate-card-in' : ''} ${deleting ? 'animate-card-out' : ''}`}
       >

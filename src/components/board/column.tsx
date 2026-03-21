@@ -92,11 +92,12 @@ export const Column = memo(function Column({ column, boardId, userId }: ColumnPr
     <>
       <div
         ref={setNodeRef}
-        style={style}
         {...attributes}
-        className={`${widthClass} shrink-0 bg-accent border border-border flex flex-col h-full`}
+        {...listeners}
+        style={style}
+        className={`${widthClass} shrink-0 bg-accent border border-border flex flex-col h-full cursor-grab active:cursor-grabbing`}
       >
-        <div className="flex items-center gap-1 p-3 cursor-grab active:cursor-grabbing" {...listeners} style={{ touchAction: 'none' }}>
+        <div className="flex items-center gap-1 p-3">
           {editing ? (
             <input
               className="flex-1 bg-transparent text-sm font-semibold border-b border-primary outline-none"
@@ -144,7 +145,7 @@ export const Column = memo(function Column({ column, boardId, userId }: ColumnPr
 
         <Separator />
 
-        <ScrollArea className="flex-1 min-h-16 [&_[data-slot=scroll-area-viewport]]:touch-pan-y">
+        <ScrollArea className="flex-1 min-h-16">
           <div className="p-2 space-y-2">
             <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
               {column.cards.map((card) => (

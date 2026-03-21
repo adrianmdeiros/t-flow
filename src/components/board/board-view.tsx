@@ -15,7 +15,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 
-// PointerSensor that ignores touch events so TouchSensor handles them with delay-based activation
+// PointerSensor that ignores touch so TouchSensor handles mobile with delay
 class MouseOnlySensor extends PointerSensor {
   static activators = [
     {
